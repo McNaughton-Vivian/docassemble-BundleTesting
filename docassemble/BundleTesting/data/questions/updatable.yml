@@ -1,0 +1,117 @@
+metadata:
+  title: for testing
+  short title: for testing
+  comment: Fun
+  authors:
+    - Vivian McNaughton
+    - Matt Newsted
+---
+include:
+  - docassemble.AssemblyLine:assembly_line.yml
+---
+code: |
+  ilao_easy_form_title = "testing"
+  ilao_easy_form_url = "https://www.illinoislegalaid.org"
+---
+objects:
+  - users: ALPeopleList.using(there_are_any=True)
+---
+objects:
+  - test_bundle: ALDocumentBundle.using(elements=[], title= "Test", filename="test.pdf", has_addendum=False, enabled=True)
+---
+objects:
+  - users[i].complaint: ALDocument.using(title="Test", filename="test.pdf", has_addendum=False, enabled=True)
+---
+mandatory: True
+code: |
+  users.gather()
+  refresh_test_bundle
+  get_docs_screen
+---
+attachment:
+  variable name: users[i].complaint[j]
+  name: complaint
+  filename: complaint
+  skip undefined: True
+  editable: False
+  pdf template file: SMC_Complaint.pdf
+  fields:
+      - "plaintiff_name": ${ users[i].name.full(middle='full') }
+---
+recalculate: True
+# You will see half as many complaints as there are users
+# We could probably just make the complaint bundle in the loop instead
+# of using party.complaint. Not sure it's worth it.
+code: |
+  delivery_complaints= []
+  delivery_parties = users # + other_parties
+  for index, party in enumerate(delivery_parties):
+    if index % 2 == 0:
+      delivery_complaints.append(party.complaint)
+      party.complaint.enabled = True
+      # https://www.freecodecamp.org/news/python-slicing-how-to-slice-an-array#howtoslicewithastartandendindex
+      # A list of 1, 3, ... items is fine. Python ignores the missing 2nd item.
+      names = [named.name for named in delivery_parties[index:index + 1]]
+      # Not sure how you're handling defendant names yet
+    else:
+      party.complaint.enabled = False
+  test_bundle.elements = delivery_complaints
+  refresh_test_bundle = True
+---
+id: get docs screen
+event: get_docs_screen
+question: |
+  Download
+subquestion: |
+  ${ action_button_html(url_action('review_answers'), label=':edit: Make changes', color='success', size="md") }
+  
+  You will see **half as many** complaints as there are users.
+  
+  ${ test_bundle.download_list_html() }
+
+  [NEWLINE]
+
+  ${ test_bundle.send_button_html(show_editable_checkbox=False) }
+---
+generic object: ALDocumentBundle
+template: x.send_email_template
+subject: |
+  Motion to remove eviction from public record forms
+content: |
+  Your forms are attached.
+---
+id: review screen
+event: review_answers
+question: |
+  Review screen
+subquestion: |
+  Edit your answers below.
+review: 
+  - Edit:
+      - users.revisit
+      - refresh_test_bundle
+    button: |
+      **Your party: (Edit to change name, lawyer, address, and delivery info)**
+
+      % for my_var in users:
+        * ${ my_var.name.full(middle="full") }
+      % endfor
+---
+id: users review
+continue button field: users.revisit
+question: |
+  Edit the names
+subquestion: |
+  ${ users.table }
+
+  ${ users.add_action() }
+---
+table: users.table
+rows: users
+columns:
+  - Name: |
+      row_item.name.full(middle="full") if defined("row_item.name.first") else ""
+  - Party, lawyer, address, and delivery info: |
+      action_button_html(url_action(row_item.attr_name("review_delivery")), label="Edit", icon="pencil-alt")
+delete buttons: True
+confirm: True
