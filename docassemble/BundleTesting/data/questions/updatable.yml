@@ -19,8 +19,9 @@ objects:
 objects:
   - test_bundle: ALDocumentBundle.using(elements=[], title= "Test", filename="test.pdf", has_addendum=False, enabled=True)
 ---
+generic object: ALIndividual
 objects:
-  - users[i].complaint: ALDocument.using(title="Test", filename="test.pdf", has_addendum=False, enabled=True)
+  - x.complaint: ALDocument.using(title="Test", filename="test.pdf", has_addendum=False, enabled=True)
 ---
 mandatory: True
 code: |
@@ -28,8 +29,9 @@ code: |
   refresh_test_bundle
   get_docs_screen
 ---
+generic object: ALIndividual
 attachment:
-  variable name: users[i].complaint[j]
+  variable name: x.complaint[i]
   name: complaint
   filename: complaint
   skip undefined: True
